@@ -3,6 +3,3 @@
 
 # Obsidian config stuff
 .obsidian/
-
-# venv stuff
-.venv/
