@@ -2,6 +2,7 @@
 .vscode/
 
 # Obsidian config stuff
-<<<<<<< HEAD
 .obsidian/
->>>>>>> 3e35aec01324f6dda6cee298b159929306d01459
+
+# IntelliJ config stuff
+.idea/
