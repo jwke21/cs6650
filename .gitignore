@@ -3,3 +3,6 @@
 
 # Obsidian config stuff
 .obsidian/
+
+# IntelliJ config stuff
+.idea/
