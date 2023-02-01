@@ -3,3 +3,7 @@
 
 # Obsidian config stuff
 .obsidian/
+
+# IntelliJ stuff
+out/
+target/
