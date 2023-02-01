@@ -12,11 +12,11 @@ public class SkierServlet extends HttpServlet {
       // seasonID - ID of the ski season. string
       // dayID - ID number of ski day in the ski season. string: min=1, max=366
       // skierID - ID of the skier riding the lift. int32
-      Pattern.compile("/skiers/[-]*(\\d{1,10})/seasons/[12](\\d{3})/days"
+      Pattern.compile("/[-]*(\\d{1,10})/seasons/[12](\\d{3})/days"
           + "/([1-9]|1\\d{2}|2\\d{2}|(3[0-5]\\d|36[0-6]))/skiers/[-]*(\\d{1,10})"),
       // url = "/skiers/{skierID}/vertical"
       // skierID - ID of the skier to retrieve data for
-      Pattern.compile("/skiers/[-]*(\\d{1,10})/vertical"),
+      Pattern.compile("/[-]*(\\d{1,10})/vertical"),
   };
   private final Pattern validPostUrls[] = {
       // url = "/skiers/{resortID}/seasons/{seasonID}/days/{dayID}/skiers/{skierID}"
@@ -24,7 +24,7 @@ public class SkierServlet extends HttpServlet {
       // seasonID - ID of the ski season. string
       // dayID - ID number of ski day in the ski season. string: min=1, max=366
       // skierID - ID of the skier riding the lift. int32
-      Pattern.compile("/skiers/[-]*(\\d{1,10})/seasons/[12](\\d{3})/days"
+      Pattern.compile("[-]*(\\d{1,10})/seasons/[12](\\d{3})/days"
           + "/([1-9]|1\\d{2}|2\\d{2}|(3[0-5]\\d|36[0-6]))/skiers/[-]*(\\d{1,10})"),
   };
 
