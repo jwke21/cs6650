@@ -1,3 +1,4 @@
+import java.io.BufferedReader;
 import java.util.regex.Pattern;
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -88,6 +89,13 @@ public class SkierServlet extends HttpServlet {
     // TODO: Implement logic handling POST requests to API
 
     // TODO: Handle request bodies containing JSON with BufferedReader
+    BufferedReader requestBody = request.getReader();
+    StringBuilder jsonPayload = new StringBuilder();
+    String line;
+    while ( (line = requestBody.readLine()) != null ) {
+      jsonPayload.append(line);
+    }
+    response.getWriter().write(jsonPayload.toString());
 
     // url = "/skiers/{resortID}/seasons/{seasonID}/days/{dayID}/skiers/{skierID}"
     if (validPostUrls[0].matcher(urlPath).matches()) {
