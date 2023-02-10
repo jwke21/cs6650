@@ -5,8 +5,6 @@ import com.opencsv.CSVWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -23,9 +21,14 @@ public class SwipeClient {
 
   public static int successfulRequests = 0;
   public static int unsuccessfulRequests = 0;
-  public static CountDownLatch remainingRequests;
+  public static CountDownLatch remainingThreads;
   public static Record record;
   public static long startTime;
+
+  public SwipeClient() {
+    // Record for tracking request latencies
+    record = new Record(UC.RECORD_NAME);
+  }
 
   public static synchronized void incSuccessfulRequests() { successfulRequests++; }
   public static synchronized void incUnSuccessfulRequests() { unsuccessfulRequests++; }
@@ -36,9 +39,7 @@ public class SwipeClient {
 
   private void sendRequests() throws InterruptedException, IOException {
     int reqPerThread = UC.TARGET_NUM_REQUESTS / UC.NUM_THREADS;
-    remainingRequests = new CountDownLatch(UC.NUM_THREADS);
-    // Record for tracking request latencies
-    record = new Record("request_record.csv");
+    remainingThreads = new CountDownLatch(UC.NUM_THREADS);
 
     System.out.println("Running multithreaded test...");
     System.out.println("Requests to make: " + UC.TARGET_NUM_REQUESTS);
@@ -52,7 +53,7 @@ public class SwipeClient {
       new Thread(new SwipeClient.Requester(reqPerThread)).start();
     }
     // Wait for all threads to terminate
-    remainingRequests.await();
+    remainingThreads.await();
 
     // Save the record (i.e. close the open CSVWriter)
     record.save();
@@ -77,7 +78,7 @@ public class SwipeClient {
       // Run multithreaded test
       swipeClient.sendRequests();
       // Calculate the overall statistics
-      record.calculateRecordStatistics();
+      swipeClient.record.calculateRecordStatistics();
     } catch (Exception e) {
       System.err.println("error: " + e);
       e.printStackTrace();
@@ -159,7 +160,7 @@ public class SwipeClient {
         System.out.println(e);
       }
       // Count down latch at thread termination
-      remainingRequests.countDown();
+      remainingThreads.countDown();
     }
   }
 
@@ -224,19 +225,15 @@ public class SwipeClient {
         csvReader.readNext();
         // Read the lines one by one
         String[] line;
-        double sumLatency = 0L;
-        double[] latencyList = new double[numRows];
+        // Init DescriptiveStatistics object for latency
+        latencyStatistics = new DescriptiveStatistics();
         for (int i = 0; i < numRows; i++) {
           line = csvReader.readNext();
-          // Read the request latency and add it to the running total
-          double latency = Double.valueOf(line[2]); // Latency is 3rd column in csv
-          sumLatency += latency;
-          latencyList[i] = latency;
+          latencyStatistics.addValue(Double.valueOf(line[2])); // Latency is 3rd column in csv
         }
         // Close the file stream
         csvReader.close();
-        // Init statistics for latency
-        latencyStatistics = new DescriptiveStatistics(latencyList);
+
         // Get the mean latency
         double meanRespTime = latencyStatistics.getMean();
         // Get the median (50th percentile)

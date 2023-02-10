@@ -15,7 +15,7 @@ public class SwipeClient {
 
   public static int successfulRequests = 0;
   public static int unsuccessfulRequests = 0;
-  public static CountDownLatch remainingRequests;
+  public static CountDownLatch remainingThreads;
 
   public static synchronized void incSuccessfulRequests() { successfulRequests++; }
   public static synchronized void incUnSuccessfulRequests() { unsuccessfulRequests++; }
@@ -24,7 +24,7 @@ public class SwipeClient {
     successfulRequests = 0;
     unsuccessfulRequests = 0;
     int reqPerThread = UC.TARGET_NUM_REQUESTS / UC.NUM_THREADS;
-    remainingRequests = new CountDownLatch(UC.NUM_THREADS);
+    remainingThreads = new CountDownLatch(UC.NUM_THREADS);
 
     System.out.println("Running multithreaded test...");
     System.out.println("Requests to make: " + UC.TARGET_NUM_REQUESTS);
@@ -38,7 +38,7 @@ public class SwipeClient {
       new Thread(new Requester(reqPerThread)).start();
     }
     // Wait for all threads to terminate
-    remainingRequests.await();
+    remainingThreads.await();
 
     // End time
     long end = System.currentTimeMillis();
@@ -56,10 +56,10 @@ public class SwipeClient {
   private void singleThreadedTest() throws InterruptedException {
     System.out.println("Running single threaded test...");
     int requestsToSend = 10_000;
-    remainingRequests = new CountDownLatch(1);
+    remainingThreads = new CountDownLatch(1);
     long start = System.currentTimeMillis();
     new Thread(new Requester(requestsToSend)).start();
-    remainingRequests.await();
+    remainingThreads.await();
     long end = System.currentTimeMillis();
     System.out.println("Calculating Little's law statistics...");
     // Wall time (total time taken in seconds)
@@ -71,7 +71,6 @@ public class SwipeClient {
     // λ = N / W
     System.out.println("Est. Throughput (λ) for 50 threads (N=50): " + (50 / w) + " req/sec");
     System.out.println("Est. Throughput (λ) for 100 threads (N=100): " + (100 / w) + " req/sec");
-    System.out.println("Est. Throughput (λ) for 150 threads (N=150): " + (150 / w) + " req/sec");
     System.out.println("Est. Throughput (λ) for 200 threads (N=200): " + (200 / w) + " req/sec");
   }
 
@@ -158,7 +157,7 @@ public class SwipeClient {
         System.out.println(e);
       }
       // Count down latch at thread termination
-      remainingRequests.countDown();
+      remainingThreads.countDown();
     }
   }
 
