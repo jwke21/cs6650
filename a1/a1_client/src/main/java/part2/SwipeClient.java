@@ -238,10 +238,11 @@ public class SwipeClient {
         String[] line;
         while ((line = csvReader.readNext()) != null) {
           // Latency is 3rd column in csv
-          latencyStatistics.addValue(Double.valueOf(line[2]));
+          Double latency = Double.valueOf(line[2]);
+          latencyStatistics.addValue(latency);
           // Seconds is first column in csv
           Double sec = Double.valueOf(line[0]);
-          reqPerSecond.put(sec, reqPerSecond.getOrDefault(sec, 0) + 1);
+          reqPerSecond.put((sec + latency), reqPerSecond.getOrDefault(sec, 0) + 1);
         }
         // Close the file stream
         csvReader.close();
