@@ -74,7 +74,6 @@ public class SwipeServlet extends HttpServlet {
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
       response.getWriter().write("Invalid JSON payload");
       e.printStackTrace();
-      return;
     }
   }
 
