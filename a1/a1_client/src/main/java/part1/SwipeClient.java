@@ -75,11 +75,18 @@ public class SwipeClient {
     System.out.println("Est. Throughput (λ) for 200 threads (N=200): " + (200 / w) + " req/sec");
   }
 
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) {
     System.out.println("------------------------------ Client Part 1 ------------------------------");
-    SwipeClient swipeClient = new SwipeClient();
-    swipeClient.singleThreadedTest();
-    swipeClient.sendAllRequests();
+    try {
+      SwipeClient swipeClient = new SwipeClient();
+      // Run single threaded test
+      swipeClient.singleThreadedTest();
+      // Run multithreaded test
+      swipeClient.sendAllRequests();
+    } catch (Exception e) {
+      System.err.println("error: " + e);
+      e.printStackTrace();
+    }
   }
 
   // ------------------------------ Requester ------------------------------

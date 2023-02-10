@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
@@ -67,15 +68,16 @@ public class SwipeClient {
     System.out.println("Unsuccessful requests: " + unsuccessfulRequests);
     System.out.println("Wall time for " + UC.TARGET_NUM_REQUESTS + " requests: " + wall + " sec");
     System.out.println("Throughput: " + throughput + " req/sec");
-    // Calculate the overall statistics
-    record.calculateRecordStatistics();
   }
 
   public static void main(String[] args) {
     System.out.println("------------------------------ Client Part 2 ------------------------------");
     try {
       SwipeClient swipeClient = new SwipeClient();
+      // Run multithreaded test
       swipeClient.sendRequests();
+      // Calculate the overall statistics
+      record.calculateRecordStatistics();
     } catch (Exception e) {
       System.err.println("error: " + e);
       e.printStackTrace();
@@ -176,6 +178,7 @@ public class SwipeClient {
     // Total number of RequestStats in record
     public int numRows = 0;
     private CSVWriter csvWriter;
+    private DescriptiveStatistics latencyStatistics;
 
     public Record(String name) {
       this.name = name;
@@ -221,24 +224,25 @@ public class SwipeClient {
         csvReader.readNext();
         // Read the lines one by one
         String[] line;
-        Long sumLatency = 0L;
-        ArrayList<Long> latencyList = new ArrayList<>();
-        while ((line = csvReader.readNext()) != null) {
+        double sumLatency = 0L;
+        double[] latencyList = new double[numRows];
+        for (int i = 0; i < numRows; i++) {
+          line = csvReader.readNext();
           // Read the request latency and add it to the running total
-          Long latency = Long.valueOf(line[2]); // Latency is 3rd column in csv
+          double latency = Double.valueOf(line[2]); // Latency is 3rd column in csv
           sumLatency += latency;
-          latencyList.add(latency);
+          latencyList[i] = latency;
         }
         // Close the file stream
         csvReader.close();
+        // Init statistics for latency
+        latencyStatistics = new DescriptiveStatistics(latencyList);
         // Get the mean latency
-        long meanRespTime = sumLatency / numRows;
-        // Sort list of latencies and get the median
-        Collections.sort(latencyList);
-        long medianRespTime = latencyList.get(numRows / 2);
-        // Get 99p
-        int idx = (int) Math.ceil(latencyList.size() * 0.99);
-        long nineNineP = latencyList.get(idx);
+        double meanRespTime = latencyStatistics.getMean();
+        // Get the median (50th percentile)
+        double medianRespTime = latencyStatistics.getPercentile(50);
+        // Get 99th percentile
+        double nineNineP = latencyStatistics.getPercentile(99);
 
         System.out.println("Mean request latency: " + meanRespTime + " ms");
         System.out.println("Median request latency: " + medianRespTime + " ms");
