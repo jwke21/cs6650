@@ -67,7 +67,7 @@ public class SwipeServlet extends HttpServlet {
         response.getWriter().write("Invalid POST request JSON fields");
         return;
       }
-      // POST request successful, send 201 response
+      // POST request successful, send 200 response
       response.setStatus(HttpServletResponse.SC_OK);
       response.getWriter().write("Write successful");
     } catch (Exception e) {
