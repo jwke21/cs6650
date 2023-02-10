@@ -1,13 +1,9 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Random;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
-import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
@@ -22,23 +18,47 @@ public class SwipeClient {
   public static final int MAX_SWIPER_ID = 5000;
   public static final int MAX_SWIPEE_ID = 1000000;
   public static final int COMMENT_LEN = 256;
-  public static final int TARGET_NUM_REQUESTS = 50000;
-  public static final int NUM_THREADS = 200;
-  public static CountDownLatch remainingRequests = new CountDownLatch(NUM_THREADS);
+  public static final int TARGET_NUM_REQUESTS = 500_000;
+//  public static final int REQUEST_BATCH_SIZE = 50_000;
+  public static final int NUM_THREADS = 100;
+  public static CountDownLatch remainingRequests;
+
   public static String URL = "http://10.0.0.58:8080/a1_server_war_exploded/swipe/";
 
   public static synchronized void incCompletedRequests() { completedRequests++; }
 
   private void sendRequests() throws InterruptedException {
     int reqPerThread = TARGET_NUM_REQUESTS / NUM_THREADS;
+    remainingRequests = new CountDownLatch(NUM_THREADS);
+
     System.out.println("Requests to make: " + TARGET_NUM_REQUESTS);
-    // Create threads
+    System.out.println("Threads used: " + NUM_THREADS);
+    System.out.println("Requests per thread: " + reqPerThread);
+
     for (int i = 0; i < NUM_THREADS; i++) {
       new Thread(new Requester(reqPerThread)).start();
     }
-    System.out.println("Threads spawned: " + NUM_THREADS);
-    System.out.println("Requests per thread: " + reqPerThread);
     remainingRequests.await();
+
+//    // Send requests in batches of 50000 to prevent outbound throttling
+//    int numBatches = 0;
+//    while (completedRequests < TARGET_NUM_REQUESTS) {
+//      numBatches++;
+//      int batchSize =
+//          TARGET_NUM_REQUESTS - completedRequests > REQUEST_BATCH_SIZE ?
+//              REQUEST_BATCH_SIZE : TARGET_NUM_REQUESTS;
+//      // Initialize latch for batch
+//      remainingRequests = new CountDownLatch(NUM_THREADS);
+//      // Create threads
+//      int reqPerThread = batchSize / NUM_THREADS;
+//      for (int i = 0; i < NUM_THREADS; i++) {
+//        new Thread(new Requester(reqPerThread)).start();
+//      }
+//      System.out.println("Request batch size: " + batchSize);
+//      System.out.println("Requests per thread: " + reqPerThread);
+//      remainingRequests.await();
+//      System.out.println("Completed batch " + numBatches);
+//    }
     System.out.println("Completed requests: " + completedRequests);
   }
 
@@ -50,11 +70,11 @@ public class SwipeClient {
   // ------------------------------ Requester ------------------------------
   public class Requester implements Runnable {
 
-    int numRequestsToSend;
-    String swipe;
-    int swiper;
-    int swipee;
-    String comment;
+    public int numRequestsToSend;
+    public String swipe;
+    public int swiper;
+    public int swipee;
+    public String comment;
 
     public Requester(int count) {
       numRequestsToSend = count;
@@ -69,9 +89,9 @@ public class SwipeClient {
 
     @Override
     public void run() {
+      // Create HttpClient
+      CloseableHttpClient client = HttpClients.createDefault();
       for (int i = 0; i < numRequestsToSend; i++) {
-        // Create HttpClient
-        CloseableHttpClient client = HttpClients.createDefault();
         // Set random request values
         setRequestValues();
         // Create PostMethod
@@ -84,9 +104,9 @@ public class SwipeClient {
           // Execute the method
           CloseableHttpResponse response = client.execute(httpPost);
           int statusCode = response.getCode();
-          // Read the response body
+          // Get the response body
           HttpEntity responseEntity = response.getEntity();
-          // If the request was rejected, print response error info
+          // If the request was rejected, print response error info by reading response body
           if (responseEntity != null && statusCode != HttpStatus.SC_OK) {
             BufferedReader bufReader =
                 new BufferedReader(new InputStreamReader(responseEntity.getContent()));
@@ -98,14 +118,19 @@ public class SwipeClient {
             String responseBody = responseBodyBuilder.toString();
             System.err.println("Method failed: " + responseBody);
           }
-          // If response was successful, do nothing
-        } catch (IOException e) {
-          System.err.println("Fatal transport error: " + e.getMessage());
-          e.printStackTrace();
+          // Close response
+          response.close();
+        } catch (Exception e) {
+          System.err.println("POST request error");
+          System.out.println(e);
         } finally {
           incCompletedRequests();
         }
       }
+      // Close client
+      try {
+        client.close();
+      } catch (Exception e) {}
       remainingRequests.countDown();
     }
   }
