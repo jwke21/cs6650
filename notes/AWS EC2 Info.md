@@ -21,3 +21,7 @@ location of tomcat's `server.xml` on EC2 instance:
 Tomcat admin creds:
 - username: admin
 - password: admin666
+
+EC2 instance `systemctl` commands:
+- `sudo systemctl daemon-reload`
+- `sudo systemctl restart tomcat`
