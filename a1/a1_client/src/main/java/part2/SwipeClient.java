@@ -5,6 +5,7 @@ import com.opencsv.CSVWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -15,6 +16,13 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.ui.ApplicationFrame;
+import org.jfree.data.xy.XYDataset;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 import utils.UC;
 
 public class SwipeClient {
@@ -79,6 +87,7 @@ public class SwipeClient {
       swipeClient.sendRequests();
       // Calculate the overall statistics
       swipeClient.record.calculateRecordStatistics();
+      swipeClient.record.plotRequestsCompletedOverTime();
     } catch (Exception e) {
       System.err.println("error: " + e);
       e.printStackTrace();
@@ -179,19 +188,10 @@ public class SwipeClient {
     // Total number of RequestStats in record
     public int numRows = 0;
     private CSVWriter csvWriter;
-    private DescriptiveStatistics latencyStatistics;
+    private DescriptiveStatistics latencyStatistics = new DescriptiveStatistics();
+    private HashMap<Double, Integer> reqPerSecond = new HashMap<>();
 
-    public Record(String name) {
-      this.name = name;
-      // Initialize the csv and write the column headers
-      try {
-        csvWriter = new CSVWriter(new FileWriter(name));
-        csvWriter.writeNext(headers);
-      } catch (IOException e) {
-        System.err.println("Failed to initialize CSVWriter: " + e);
-        throw new RuntimeException(e);
-      }
-    }
+    public Record(String name) { this.name = name; }
 
     public void save() throws IOException {
       // Write remaining data in buffer to disk
@@ -201,6 +201,17 @@ public class SwipeClient {
     }
 
     public void addRequestStatsToRecord(RequestStats requestStats) {
+      // If first write, initialize the CSVWriter
+      try {
+        if (csvWriter == null) {
+          csvWriter = new CSVWriter(new FileWriter(name));
+          // Write the column headers
+          csvWriter.writeNext(headers);
+        }
+      } catch (Exception e) {
+        System.err.println("Failed to initialize CSVWriter: " + e);
+        throw new RuntimeException(e);
+      }
       // If buffer is full write it out to disk
       if (count == BUF_SIZE) {
         writeRecordToDisk();
@@ -225,11 +236,12 @@ public class SwipeClient {
         csvReader.readNext();
         // Read the lines one by one
         String[] line;
-        // Init DescriptiveStatistics object for latency
-        latencyStatistics = new DescriptiveStatistics();
-        for (int i = 0; i < numRows; i++) {
-          line = csvReader.readNext();
-          latencyStatistics.addValue(Double.valueOf(line[2])); // Latency is 3rd column in csv
+        while ((line = csvReader.readNext()) != null) {
+          // Latency is 3rd column in csv
+          latencyStatistics.addValue(Double.valueOf(line[2]));
+          // Seconds is first column in csv
+          Double sec = Double.valueOf(line[0]);
+          reqPerSecond.put(sec, reqPerSecond.getOrDefault(sec, 0) + 1);
         }
         // Close the file stream
         csvReader.close();
@@ -248,6 +260,29 @@ public class SwipeClient {
         System.err.println("Read from disk error: " + e);
         throw new RuntimeException(e);
       }
+    }
+
+    public void plotRequestsCompletedOverTime() {
+      // XYSeries for plotting
+      XYSeries xySeries = new XYSeries("Requests per Second");
+      // Add all the (x, y) coordinates, where x=time (seconds), y=numCompletedRequests (seconds)
+      for (Double time : reqPerSecond.keySet()) {
+        xySeries.add(time * UC.MSEC_TO_SECONDS_CONV, reqPerSecond.get(time));
+      }
+      // Turn into Dataset
+      XYDataset dataset = new XYSeriesCollection(xySeries);
+      // Plot the dataset
+      JFreeChart chart = ChartFactory.createXYLineChart(
+          "Throughput Over Time",
+          "Time (sec)",
+          "Throughput",
+          dataset
+      );
+      ChartPanel panel = new ChartPanel(chart);
+      ApplicationFrame frame = new ApplicationFrame("Line Plot");
+      frame.setContentPane(panel);
+      frame.pack();
+      frame.setVisible(true);
     }
   }
 
