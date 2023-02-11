@@ -27,7 +27,7 @@ class to the base URL of the target servlet.
 
 ## Graph of Throughput Over Time
 
-![alt text](./images/graph.pn)
+![alt text](./images/graph.png)
 
 ## Reflections
 
