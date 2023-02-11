@@ -9,6 +9,6 @@ public class UC {
   public static final int MAX_REQUEST_ATTEMPTS = 5;
   public static final Integer TARGET_NUM_REQUESTS = 500_000;
   public static final double MSEC_TO_SECONDS_CONV = 0.001;
-  public static String URL = "http://52.12.183.77/a1_server_war/swipe/";
+  public static String URL = "http://34.217.179.248/a1_server_war/swipe/";
   public static String RECORD_NAME = "request_record.csv";
 }

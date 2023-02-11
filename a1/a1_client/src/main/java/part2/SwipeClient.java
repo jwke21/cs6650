@@ -176,7 +176,7 @@ public class SwipeClient {
   // ------------------------------ Record ------------------------------
   public static class Record {
 
-    public static final int BUF_SIZE = 5000;
+    public static final int BUF_SIZE = 100000;
     public static final String[] headers =
         {"start_time (ms)", "request_type (str)", "latency (ms)", "response_code (int)"};
     // Name of record, used as file name when written to disk
