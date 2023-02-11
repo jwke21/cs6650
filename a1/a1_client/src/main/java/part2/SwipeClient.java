@@ -189,7 +189,7 @@ public class SwipeClient {
     public int numRows = 0;
     private CSVWriter csvWriter;
     private DescriptiveStatistics latencyStatistics = new DescriptiveStatistics();
-    private HashMap<Double, Integer> reqPerSecond = new HashMap<>();
+    private HashMap<Integer, Integer> reqPerSecond = new HashMap<>();
 
     public Record(String name) { this.name = name; }
 
@@ -240,9 +240,9 @@ public class SwipeClient {
           // Latency is 3rd column in csv
           Double latency = Double.valueOf(line[2]);
           latencyStatistics.addValue(latency);
-          // Seconds is first column in csv
-          Double sec = Double.valueOf(line[0]);
-          reqPerSecond.put((sec + latency), reqPerSecond.getOrDefault(sec, 0) + 1);
+          // Time is first column in csv (must be be converted from ms to sec then converted to int)
+          Integer sec = (int) (Double.valueOf(line[0]) * UC.MSEC_TO_SECONDS_CONV);
+          reqPerSecond.put(sec, reqPerSecond.getOrDefault(sec, 0) + 1);
         }
         // Close the file stream
         csvReader.close();
@@ -265,10 +265,10 @@ public class SwipeClient {
 
     public void plotRequestsCompletedOverTime() {
       // XYSeries for plotting
-      XYSeries xySeries = new XYSeries("Requests per Second");
-      // Add all the (x, y) coordinates, where x=time (seconds), y=numCompletedRequests (seconds)
-      for (Double time : reqPerSecond.keySet()) {
-        xySeries.add(time * UC.MSEC_TO_SECONDS_CONV, reqPerSecond.get(time));
+      XYSeries xySeries = new XYSeries("Throughput per Second");
+      // Add all the (x, y) coordinates, where x=time (seconds), y=throughput (req/sec)
+      for (Integer time : reqPerSecond.keySet()) {
+        xySeries.add(time, reqPerSecond.get(time));
       }
       // Turn into Dataset
       XYDataset dataset = new XYSeriesCollection(xySeries);
