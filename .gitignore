@@ -7,3 +7,6 @@
 # IntelliJ stuff
 out/
 target/
+
+# Program output stuff
+*.csv
