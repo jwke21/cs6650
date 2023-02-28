@@ -3,10 +3,16 @@ My home IP (dynamic): 76.146.73.81
 
 Instance address: ec2-54-189-164-174.us-west-2.compute.amazonaws.com
 
-ssh into EC2 instance command: ```
+ssh into Amazon Linux EC2 instance command: ```
 ```
 ssh -i CS6650.pem ec2-user@instance-address
 ```
+
+ssh into Ubuntu EC2 instance command:
+```
+ssh -i CS6650.pem ubuntu@instance-address
+```
+
 
 scp into tomcat webapps dir:
 ```
@@ -25,3 +31,8 @@ Tomcat admin creds:
 EC2 instance `systemctl` commands:
 - `sudo systemctl daemon-reload`
 - `sudo systemctl restart tomcat`
+- `systemctl status rabbitmq-server`
+
+Rabbitmq creds:
+- username: admin
+- password: admin666
