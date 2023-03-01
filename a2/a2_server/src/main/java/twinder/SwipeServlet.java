@@ -1,8 +1,10 @@
 package twinder;
 
 import com.google.gson.Gson;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.MessageProperties;
+import com.rabbitmq.client.impl.AMQBasicProperties;
 import rmq.RmqConnectionHandler;
 import utils.UC;
 import javax.servlet.*;
@@ -17,11 +19,15 @@ import java.util.regex.Pattern;
 public class SwipeServlet extends HttpServlet {
 
     private RmqConnectionHandler connectionHandler;
+
     private static final Pattern validPostUrls[] = {
             // url = "/swipe/{leftorright}/"
             // leftorright - Like or dislike user. String
             Pattern.compile("/(left|right)"),
     };
+    // Gson instance that will handle json serialization and de-serialization
+    // Ref: https://github.com/google/gson/blob/master/UserGuide.md
+    private static Gson gson = new Gson();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -47,9 +53,6 @@ public class SwipeServlet extends HttpServlet {
         }
         try {
             String requestBody = readRequestBody(request);
-            // Gson instance that will handle json serialization and de-serialization
-            // Ref: https://github.com/google/gson/blob/master/UserGuide.md
-            Gson gson = new Gson();
             // Parse request's JSON into a PostRequestJson Object
             PostRequestJson jsonPayload = gson.fromJson(requestBody, SwipeServlet.PostRequestJson.class);
             // Validate post request JSON
@@ -60,19 +63,27 @@ public class SwipeServlet extends HttpServlet {
             }
             // Borrow a channel from the channel pool
             Channel channel = connectionHandler.borrowChannel();
-            boolean durable = true; // Persist messages to disk
-            channel.queueDeclare(UC.SWIPE_QUEUE_NAME, durable, false, false, null);
-            // Publish the JSON to the queue
-            channel.basicPublish("", UC.SWIPE_QUEUE_NAME,
-                                    MessageProperties.PERSISTENT_TEXT_PLAIN,
-                                    requestBody.getBytes(StandardCharsets.UTF_8));
+            // Declare the non-durable fanout exchange
+            boolean durableExchange = false;
+            channel.exchangeDeclare(UC.RMQ_SWIPE_EXCHANGE_NAME, UC.RMQ_SWIPE_EXCHANGE_TYPE, durableExchange);
+
+            // Build the message to be sent to the RMQ broker
+            boolean liked = false;
+            if (urlPath.equals("/right")) {
+                liked = true;
+            }
+            String msg = "{swiper:" + jsonPayload.swiper + ",swipee:" + jsonPayload.swipee + ",like:" + liked + "}";
+            // Publish the JSON message to the fanout exchange
+            channel.basicPublish(UC.RMQ_SWIPE_EXCHANGE_NAME,
+                                 "", // routingKey
+                                 null, // Message properties
+                                 msg.getBytes(StandardCharsets.UTF_8));
             // Return the channel to the channel pool
             connectionHandler.returnChannel(channel);
             // Send response to client
             response.setStatus(HttpServletResponse.SC_OK); // HTTP 200
             response.getWriter().write("Write successful");
         } catch (Exception e) {
-            // There was an issue parsing the JSON payload
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST); // HTTP 400
             response.getWriter().write("Issue handling JSON payload");
             e.printStackTrace();
@@ -103,15 +114,22 @@ public class SwipeServlet extends HttpServlet {
     }
 
     private boolean isValidPostRequestJson(PostRequestJson json) {
-        return json.swiper != null && json.swipee != null && json.comment != null && // null fields
-                !json.swiper.isEmpty() && !json.swipee.isEmpty() && !json.comment.isEmpty() && // Empty fields
-                json.swiper.length() <= UC.MAX_SWIPER_ID && json.swipee.length() <= UC.MAX_SWIPEE_ID; // Field lengths
+        return json.swiper >= 1 && json.swiper <= UC.MAX_SWIPER_ID && // "swiper - between 1 and 5000"
+                json.swipee >= 1 && json.swipee <= UC.MAX_SWIPEE_ID && // "swipee - between 1 and 1,000,000"
+                json.comment != null && json.comment.length() == UC.COMMENT_LENGTH; // "comment - random string of 256 characters"
     }
 
     // ------------------------------ PostRequestJson ------------------------------
     private static class PostRequestJson {
-        public String swiper;
-        public String swipee;
+        public int swiper;
+        public int swipee;
         public String comment;
+    }
+
+    // ------------------------------ SwipeMessageJson ------------------------------
+    public static class SwipeMessageJson {
+        public int swiper;
+        public int swipee;
+        public boolean like;
     }
 }

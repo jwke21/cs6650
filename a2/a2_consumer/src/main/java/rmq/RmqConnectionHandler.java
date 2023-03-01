@@ -11,7 +11,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class RmqConnectionHandler {
 
-
     private int numChannels;
     private Connection connection;
     // ref: https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/LinkedBlockingQueue.html
@@ -20,6 +19,7 @@ public class RmqConnectionHandler {
     public RmqConnectionHandler(int numChannels, Connection connection) {
         this.numChannels = numChannels;
         this.connection = connection;
+        // The channel pool will be a LinkedBlockingQueue of size numChannels
         pool = new LinkedBlockingQueue<>(numChannels);
         for (int i = 0; i < numChannels; i++) {
             Channel newChannel;
@@ -52,6 +52,7 @@ public class RmqConnectionHandler {
     // Factory method for creating RmqConnectionHandlers
     public static RmqConnectionHandler createConnectionHandler(int numChannels, String rmqHostName) {
         try {
+            // Create connection with RMQ server
             ConnectionFactory connectionFactory = new ConnectionFactory();
             connectionFactory.setHost(rmqHostName);
             connectionFactory.setUsername(UC.RMQ_USERNAME);
