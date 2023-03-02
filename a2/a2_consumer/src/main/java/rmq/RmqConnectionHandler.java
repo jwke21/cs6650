@@ -6,6 +6,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import utils.UC;
 
+import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -46,6 +47,46 @@ public class RmqConnectionHandler {
     public void returnChannel(Channel channel) {
         if (channel != null) {
             pool.add(channel);
+        }
+    }
+
+    public void declareExchange(String exchangeName, String exchangeType, boolean durable) {
+        Channel channel = borrowChannel();
+        try {
+            channel.exchangeDeclare(exchangeName, exchangeType, durable);
+        } catch (IOException e) {
+            System.err.println("Unable to declare exchange '" + exchangeName + "'");
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        } finally {
+            returnChannel(channel);
+        }
+    }
+
+    public void declareQueue(String queueName, boolean durable) {
+        Channel channel = borrowChannel();
+        try {
+            channel.queueDeclare(queueName, durable, false, false, null);
+        } catch (IOException e) {
+            System.err.println("Unable to declare queue '" + queueName + "'");
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        } finally {
+            returnChannel(channel);
+        }
+    }
+
+    public void bindQueue(String queueName, String exchangeName, String routingKey) {
+        Channel channel = borrowChannel();
+        try {
+            // Bind the queue to the exchange (without a routing key)
+            channel.queueBind(queueName, exchangeName, routingKey);
+        } catch (IOException e) {
+            System.err.println("Unable to bind queue '" + queueName + "' to exchange '" + exchangeName + "'");
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        } finally {
+            returnChannel(channel);
         }
     }
 

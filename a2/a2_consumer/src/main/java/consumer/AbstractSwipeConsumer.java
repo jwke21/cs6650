@@ -13,12 +13,14 @@ public abstract class AbstractSwipeConsumer {
     private String queueName;
     private RmqConnectionHandler connectionHandler;
     private Thread[] threadPool;
-    private static Gson gson;
+    private Gson gson;
 
     public AbstractSwipeConsumer(String exchangeName, String queueName) {
         this.exchangeName = exchangeName;
         this.queueName = queueName;
         this.connectionHandler = RmqConnectionHandler.createConnectionHandler(UC.NUM_THREADS, UC.RMQ_HOST_ADDRESS);
+        connectionHandler.declareQueue(queueName, true);
+        connectionHandler.bindQueue(queueName, exchangeName, "");
         this.gson = new Gson();
         // Initialize the thread pool
         this.threadPool = new Thread[UC.NUM_THREADS];
@@ -49,15 +51,6 @@ public abstract class AbstractSwipeConsumer {
                 int prefetchCount = 1;
                 channel.basicQos(prefetchCount);
 
-                // Declare a non-durable queue
-                boolean durableQueue = false;
-                channel.queueDeclare(queueName, durableQueue, false, false, null);
-                // Declare a non-durable exchange
-                boolean durableExchange = false;
-                channel.exchangeDeclare(UC.RMQ_EXCHANGE_NAME, UC.RMQ_EXCHANGE_TYPE, durableExchange);
-                // Bind the queue to the exchange (without a routing key)
-                channel.queueBind(queueName, exchangeName, "");
-
                 // Callback lambda used when message delivered
                 DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                     // Get the msg json body
@@ -74,7 +67,8 @@ public abstract class AbstractSwipeConsumer {
             } catch (Exception e) {
                 System.err.println("Consumer thread error");
                 e.printStackTrace();
-                System.exit(1);
+            } finally {
+                connectionHandler.returnChannel(channel);
             }
         }
     }
