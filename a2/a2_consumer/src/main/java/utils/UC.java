@@ -2,7 +2,7 @@ package utils;
 
 public class UC {
 
-    public static final String RMQ_HOST_ADDRESS = "localhost";
+    public static final String RMQ_HOST_ADDRESS = "54.68.180.97";
     public static final String RMQ_VHOST = "a2_host";
     public static final String RMQ_USERNAME = "admin";
     public static final String RMQ_PASSWORD = "admin666";
