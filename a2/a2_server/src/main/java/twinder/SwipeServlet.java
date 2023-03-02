@@ -1,10 +1,7 @@
 package twinder;
 
 import com.google.gson.Gson;
-import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.MessageProperties;
-import com.rabbitmq.client.impl.AMQBasicProperties;
 import rmq.RmqConnectionHandler;
 import utils.UC;
 import javax.servlet.*;
@@ -19,6 +16,7 @@ import java.util.regex.Pattern;
 public class SwipeServlet extends HttpServlet {
 
     private RmqConnectionHandler connectionHandler;
+    private static Gson gson = new Gson();
 
     private static final Pattern validPostUrls[] = {
             // url = "/swipe/{leftorright}/"
@@ -27,7 +25,6 @@ public class SwipeServlet extends HttpServlet {
     };
     // Gson instance that will handle json serialization and de-serialization
     // Ref: https://github.com/google/gson/blob/master/UserGuide.md
-    private static Gson gson = new Gson();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -49,6 +46,7 @@ public class SwipeServlet extends HttpServlet {
         if (!isValidPostUrl(urlPath)) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND); // HTTP 404
             response.getWriter().write("Invalid POST path");
+            System.out.println("Invalid post request");
             return;
         }
         try {
