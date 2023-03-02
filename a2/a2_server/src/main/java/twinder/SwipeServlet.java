@@ -31,6 +31,7 @@ public class SwipeServlet extends HttpServlet {
         super.init(config);
         // Establish connection with RabbitMQ server
         connectionHandler = RmqConnectionHandler.createConnectionHandler(UC.NUM_CHANNELS, UC.RMQ_HOST_NAME);
+        connectionHandler.declareExchange(UC.RMQ_SWIPE_EXCHANGE_NAME, UC.RMQ_SWIPE_EXCHANGE_TYPE, true);
     }
 
     @Override
@@ -49,6 +50,8 @@ public class SwipeServlet extends HttpServlet {
             System.out.println("Invalid post request");
             return;
         }
+        // Borrow a channel from the channel pool
+        Channel channel = connectionHandler.borrowChannel();
         try {
             String requestBody = readRequestBody(request);
             // Parse request's JSON into a PostRequestJson Object
@@ -59,25 +62,14 @@ public class SwipeServlet extends HttpServlet {
                 response.getWriter().write("Invalid POST request JSON");
                 return;
             }
-            // Borrow a channel from the channel pool
-            Channel channel = connectionHandler.borrowChannel();
-            // Declare the non-durable fanout exchange
-            boolean durableExchange = false;
-            channel.exchangeDeclare(UC.RMQ_SWIPE_EXCHANGE_NAME, UC.RMQ_SWIPE_EXCHANGE_TYPE, durableExchange);
-
             // Build the message to be sent to the RMQ broker
-            boolean liked = false;
-            if (urlPath.equals("/right")) {
-                liked = true;
-            }
+            boolean liked = urlPath.equals("/right") ? true : false;
             String msg = "{swiper:" + jsonPayload.swiper + ",swipee:" + jsonPayload.swipee + ",like:" + liked + "}";
             // Publish the JSON message to the fanout exchange
             channel.basicPublish(UC.RMQ_SWIPE_EXCHANGE_NAME,
                                  "", // routingKey
                                  null, // Message properties
                                  msg.getBytes(StandardCharsets.UTF_8));
-            // Return the channel to the channel pool
-            connectionHandler.returnChannel(channel);
             // Send response to client
             response.setStatus(HttpServletResponse.SC_OK); // HTTP 200
             response.getWriter().write("Write successful");
@@ -85,6 +77,9 @@ public class SwipeServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST); // HTTP 400
             response.getWriter().write("Issue handling JSON payload");
             e.printStackTrace();
+        } finally {
+            // Return the channel to the channel pool
+            connectionHandler.returnChannel(channel);
         }
     }
 
