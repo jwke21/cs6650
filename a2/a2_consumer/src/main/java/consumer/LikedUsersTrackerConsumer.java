@@ -18,6 +18,8 @@ public class LikedUsersTrackerConsumer extends AbstractSwipeConsumer {
         for (int i = 0; i < UC.MAX_SWIPER_ID; i++) {
             bySwiperId.put(i, new LikedUsersStats());
         }
+        System.out.println("Consumer for queue '" + UC.RMQ_LIKED_USERS_QUEUE_NAME + "' successfully launched. " +
+                "Press CTRL+C to shut down.");
     }
 
     @Override
