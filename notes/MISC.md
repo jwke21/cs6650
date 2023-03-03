@@ -19,6 +19,9 @@ ssh into Ubuntu EC2 instance command:
 ssh -i CS6650.pem ubuntu@instance-address
 ```
 
+IP for Ubuntu EC2 instance for "swipe-like-dislike-stats-consumer": `54.191.75.144`
+
+IP for Ubuntu EC2 instance for "swipe-liked-users-stats-consumer": `44.231.192.218`
 
 # Tomcat
 
@@ -33,15 +36,36 @@ location of tomcat's `server.xml` on EC2 instance:
 /usr/share/apache-tomcat-9.0.63/conf/server.xml
 ```
 
-ssh into tomcat EC2 instance:
+ssh into Tomcat EC2 instance:
 ```
 ssh -i CS6650.pem ec2-user@54.185.208.4
 ```
+or:
+```
+ssh -i CS6650.pem ec2-user@35.160.135.31
+```
+
 
 scp into tomcat webapps dir (for placing war files):
 ```
 scp -i CS6650.pem <path/to/war> ec2-user@instance-address:/usr/share/tomcat/webapps
 ```
+
+How to automatically start Java jar files on AWS EC2:
+1) Create unit file and save it in `/etc/systemd/system/my-app.service`
+2) Run `sudo systemctl daemon-reload`
+3) Run `sudo systemctl enable --now my-app`
+4) Following commands become available
+	```
+	sudo systemctl status my-app
+	sudo systemctl stop my-app
+	sudo systemctl start my-app
+	```
+- References:
+	- https://stackoverflow.com/questions/69678243/how-to-automatically-start-2-java-jars-on-aws-ec2
+	- https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_basic_system_settings/assembly_working-with-systemd-unit-files_configuring-basic-system-settings
+
+
 
 ## Deploying a WAR file to Tomcat server in EC2 instance 
 
@@ -72,3 +96,6 @@ creds:
 RMQ EC2 instance elastic ip: `54.68.180.97`
 
 
+# Java
+
+Compiling Java applications tutorial: https://www.jetbrains.com/help/idea/compiling-applications.html
