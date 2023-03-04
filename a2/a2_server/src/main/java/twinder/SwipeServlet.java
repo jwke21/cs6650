@@ -16,15 +16,14 @@ import java.util.regex.Pattern;
 public class SwipeServlet extends HttpServlet {
 
     private RmqConnectionHandler connectionHandler;
+    // Gson instance that will handle json serialization and de-serialization
+    // Ref: https://github.com/google/gson/blob/master/UserGuide.md
     private static Gson gson = new Gson();
-
     private static final Pattern validPostUrls[] = {
             // url = "/swipe/{leftorright}/"
             // leftorright - Like or dislike user. String
             Pattern.compile("/(left|right)"),
     };
-    // Gson instance that will handle json serialization and de-serialization
-    // Ref: https://github.com/google/gson/blob/master/UserGuide.md
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -117,12 +116,5 @@ public class SwipeServlet extends HttpServlet {
         public int swiper;
         public int swipee;
         public String comment;
-    }
-
-    // ------------------------------ SwipeMessageJson ------------------------------
-    public static class SwipeMessageJson {
-        public int swiper;
-        public int swipee;
-        public boolean like;
     }
 }
