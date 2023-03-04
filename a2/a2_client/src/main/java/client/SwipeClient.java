@@ -52,32 +52,9 @@ public class SwipeClient {
     System.out.println("Throughput: " + throughput + " req/sec");
   }
 
-  private void singleThreadedTest() throws InterruptedException {
-    System.out.println("Running single threaded test...");
-    int requestsToSend = 10_000;
-    remainingThreads = new CountDownLatch(1);
-    long start = System.currentTimeMillis();
-    new Thread(new Requester(requestsToSend)).start();
-    remainingThreads.await();
-    long end = System.currentTimeMillis();
-    System.out.println("Calculating Little's law statistics...");
-    // Wall time (total time taken in seconds)
-    double wall = (end - start) * UC.MSEC_TO_SECONDS_CONV;
-    System.out.println("Single threaded wall time for 10,000 requests: " + wall + " sec");
-    // Throughput = requests / wall time
-    double w = wall / requestsToSend;
-    System.out.println("Avg. Response Time (W): " + w + " sec");
-    // λ = N / W
-    System.out.println("Est. Throughput (λ) for 50 threads (N=50): " + (50 / w) + " req/sec");
-    System.out.println("Est. Throughput (λ) for 100 threads (N=100): " + (100 / w) + " req/sec");
-    System.out.println("Est. Throughput (λ) for 200 threads (N=200): " + (200 / w) + " req/sec");
-  }
-
   public static void main(String[] args) {
     try {
       SwipeClient swipeClient = new SwipeClient();
-      // Run single threaded test
-//      swipeClient.singleThreadedTest();
       // Run multithreaded test
       swipeClient.sendAllRequests();
     } catch (Exception e) {
